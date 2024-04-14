@@ -33,6 +33,9 @@ import (
 	"github.com/ollama/ollama/openai"
 	"github.com/ollama/ollama/parser"
 	"github.com/ollama/ollama/version"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	prometrics "github.com/ollama/ollama/metrics"
+
 )
 
 var mode string = gin.DebugMode
@@ -1057,6 +1060,7 @@ func (s *Server) GenerateRoutes() http.Handler {
 	r.Use(
 		cors.New(config),
 		allowedHostsMiddleware(s.addr),
+		prometheusMetricsMiddleware(),
 	)
 
 	r.POST("/api/pull", PullModelHandler)
@@ -1070,6 +1074,9 @@ func (s *Server) GenerateRoutes() http.Handler {
 	r.POST("/api/show", ShowModelHandler)
 	r.POST("/api/blobs/:digest", CreateBlobHandler)
 	r.HEAD("/api/blobs/:digest", HeadBlobHandler)
+
+	// Metrics endpoint
+	r.GET("/metrics", MetricsHandler)
 
 	// Compatibility endpoints
 	r.POST("/v1/chat/completions", openai.Middleware(), ChatHandler)
@@ -1413,4 +1420,47 @@ func ChatHandler(c *gin.Context) {
 	}
 
 	streamResponse(c, ch)
+}
+
+// MetricsHandler returns the gin.HandlerFunc that provides the Prometheus metrics format on GET requests
+func MetricsHandler(c *gin.Context) {
+	promhttp.Handler().ServeHTTP(c.Writer, c.Request)
+}
+
+// prometheusMetricsMiddleware returns a Gin middleware handler that collects Prometheus metrics for HTTP requests.
+// It records the route, response status code, and response status text for each request.
+func prometheusMetricsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		route := c.Request.URL.Path
+		c.Next()
+
+		// access the status we are sending
+		responseStatus := c.Writer.Status()
+
+		// increment the counter for all requests
+		prometrics.RequestTotal.WithLabelValues("all", fmt.Sprintf("%d", responseStatus), http.StatusText(responseStatus)).Inc()
+
+		// increment the counter for the metric based on request path
+		switch route {
+		case "/api/pull":
+			prometrics.ModelPullTotal.WithLabelValues("pull", fmt.Sprintf("%d", responseStatus), http.StatusText(responseStatus)).Inc()
+		case "/api/create":
+			prometrics.ModelCreateTotal.WithLabelValues("create", fmt.Sprintf("%d", responseStatus), http.StatusText(responseStatus)).Inc()
+		case "/api/tags":
+			prometrics.ModelListTotal.WithLabelValues("list", fmt.Sprintf("%d", responseStatus), http.StatusText(responseStatus)).Inc()
+		case "/api/push":
+			prometrics.ModelListTotal.WithLabelValues("push", fmt.Sprintf("%d", responseStatus), http.StatusText(responseStatus)).Inc()
+		case "/api/copy":
+			prometrics.ModelCopyTotal.WithLabelValues("copy", fmt.Sprintf("%d", responseStatus), http.StatusText(responseStatus)).Inc()
+		case "/api/delete":
+			prometrics.ModelDeleteTotal.WithLabelValues("delete", fmt.Sprintf("%d", responseStatus), http.StatusText(responseStatus)).Inc()
+		case "/api/show":
+			prometrics.ModelShowTotal.WithLabelValues("show", fmt.Sprintf("%d", responseStatus), http.StatusText(responseStatus)).Inc()
+		case "/api/chat":
+			prometrics.ChatTotal.WithLabelValues("chat", fmt.Sprintf("%d", responseStatus), http.StatusText(responseStatus)).Inc()
+		case "/v1/chat/completions":
+			prometrics.ChatTotal.WithLabelValues("chat", fmt.Sprintf("%d", responseStatus), http.StatusText(responseStatus)).Inc()
+		}
+
+	}
 }
