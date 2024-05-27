@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/ollama/ollama/envconfig"
 )
 
 type ModelPath struct {
@@ -69,6 +71,7 @@ func ParseModelPath(name string) ModelPath {
 	return mp
 }
 
+var errModelDirInvalid = errors.New("model directory is not set")
 var errModelPathInvalid = errors.New("invalid model path")
 
 func (mp ModelPath) Validate() error {
@@ -101,17 +104,13 @@ func (mp ModelPath) GetShortTagname() string {
 	return fmt.Sprintf("%s/%s/%s:%s", mp.Registry, mp.Namespace, mp.Repository, mp.Tag)
 }
 
-// modelsDir returns the value of the OLLAMA_MODELS environment variable or the user's home directory if OLLAMA_MODELS is not set.
-// The models directory is where Ollama stores its model files and manifests.
+// modelsDir returns the location where Ollama stores its model files
+// and manifests, or fails if the location is empty
 func modelsDir() (string, error) {
-	if models, exists := os.LookupEnv("OLLAMA_MODELS"); exists {
-		return models, nil
+	if envconfig.Models == "" {
+		return "", errModelDirInvalid
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(home, ".ollama", "models"), nil
+	return envconfig.Models, nil
 }
 
 // GetManifestPath returns the path to the manifest file for the given model path, it is up to the caller to create the directory if it does not exist.
