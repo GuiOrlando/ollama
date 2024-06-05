@@ -356,18 +356,18 @@ func CreateModel(ctx context.Context, name, modelFileDir, quantization string, m
 					}
 				}
 
-				blobpath, err := GetBlobsPath(digest)
+				p, err := GetBlobsPath(strings.TrimPrefix(c.Args, "@"))
 				if err != nil {
 					return err
 				}
 
-				blob, err := os.Open(blobpath)
+				b, err := os.Open(p)
 				if err != nil {
 					return err
 				}
-				defer blob.Close()
+				defer b.Close()
 
-				baseLayers, err = parseFromFile(ctx, blob, digest, fn)
+				baseLayers, err = parseFromFile(ctx, b, digest, fn)
 				if err != nil {
 					return err
 				}
@@ -439,8 +439,23 @@ func CreateModel(ctx context.Context, name, modelFileDir, quantization string, m
 				layers = append(layers, baseLayer.Layer)
 			}
 		case "license", "template", "system":
-			blob := strings.NewReader(c.Args)
-			layer, err := NewLayer(blob, mediatype)
+			var r io.Reader = strings.NewReader(c.Args)
+			if strings.HasPrefix(c.Args, "@") {
+				p, err := GetBlobsPath(strings.TrimPrefix(c.Args, "@"))
+				if err != nil {
+					return err
+				}
+
+				b, err := os.Open(p)
+				if err != nil {
+					return err
+				}
+				defer b.Close()
+
+				r = b
+			}
+
+			layer, err := NewLayer(r, mediatype)
 			if err != nil {
 				return err
 			}
