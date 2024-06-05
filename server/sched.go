@@ -702,5 +702,4 @@ func (s *Scheduler) maybeFindCPURunnerToUnload(req *LlmRequest, ggml *llm.GGML, 
 	// TODO - optimization: try to find CPU only runners first, or partial offloads with enough in system memory to make room
 
 	return s.findRunnerToUnload()
-
 }
