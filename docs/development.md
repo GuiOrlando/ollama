@@ -55,6 +55,9 @@ specifying an environment variable `CUDA_LIB_DIR` to the location of the shared
 libraries, and `CUDACXX` to the location of the nvcc compiler. You can customize
 a set of target CUDA architectures by setting `CMAKE_CUDA_ARCHITECTURES` (e.g. "50;60;70")
 
+To support GPUs older than Compute Capability 5.0, you will need to use an older version of
+the Driver from [Unix Driver Archive](https://www.nvidia.com/en-us/drivers/unix/) (e.g. 470, or 390) and [CUDA Toolkit Archive](https://developer.nvidia.com/cuda-toolkit-archive)
+
 Then generate dependencies:
 
 ```
