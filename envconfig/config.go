@@ -41,6 +41,8 @@ var (
 	MaxQueuedRequests int
 	// Set via OLLAMA_MAX_VRAM in the environment
 	MaxVRAM uint64
+	// Set via OLLAMA_MODELS in the environment
+	Models string
 	// Set via OLLAMA_NOHISTORY in the environment
 	NoHistory bool
 	// Set via OLLAMA_NOPRUNE in the environment
@@ -71,7 +73,7 @@ func AsMap() map[string]EnvVar {
 		"OLLAMA_MAX_LOADED_MODELS": {"OLLAMA_MAX_LOADED_MODELS", MaxRunners, "Maximum number of loaded models (default 1)"},
 		"OLLAMA_MAX_QUEUE":         {"OLLAMA_MAX_QUEUE", MaxQueuedRequests, "Maximum number of queued requests"},
 		"OLLAMA_MAX_VRAM":          {"OLLAMA_MAX_VRAM", MaxVRAM, "Maximum VRAM"},
-		"OLLAMA_MODELS":            {"OLLAMA_MODELS", "", "The path to the models directory"},
+		"OLLAMA_MODELS":            {"OLLAMA_MODELS", Models, "The path to the models directory"},
 		"OLLAMA_NOHISTORY":         {"OLLAMA_NOHISTORY", NoHistory, "Do not preserve readline history"},
 		"OLLAMA_NOPRUNE":           {"OLLAMA_NOPRUNE", NoPrune, "Do not prune model blobs on startup"},
 		"OLLAMA_NUM_PARALLEL":      {"OLLAMA_NUM_PARALLEL", NumParallel, "Maximum number of parallel requests (default 1)"},
@@ -163,6 +165,14 @@ func LoadConfig() {
 	}
 
 	TmpDir = clean("OLLAMA_TMPDIR")
+
+	Models = clean("OLLAMA_MODELS")
+	if Models == "" {
+		home, err := os.UserHomeDir()
+		if err == nil {
+			Models = filepath.Join(home, ".ollama", "models")
+		}
+	}
 
 	userLimit := clean("OLLAMA_MAX_VRAM")
 	if userLimit != "" {
