@@ -53,6 +53,10 @@ var (
 	RunnersDir string
 	// Set via OLLAMA_TMPDIR in the environment
 	TmpDir string
+	// Set via OLLAMA_MODELS in the environment
+	OllamaModels string
+	// Set via OLLAMA_HOME in the environment
+	OllamaHome string
 )
 
 type EnvVar struct {
@@ -70,8 +74,9 @@ func AsMap() map[string]EnvVar {
 		"OLLAMA_LLM_LIBRARY":       {"OLLAMA_LLM_LIBRARY", LLMLibrary, "Set LLM library to bypass autodetection"},
 		"OLLAMA_MAX_LOADED_MODELS": {"OLLAMA_MAX_LOADED_MODELS", MaxRunners, "Maximum number of loaded models (default 1)"},
 		"OLLAMA_MAX_QUEUE":         {"OLLAMA_MAX_QUEUE", MaxQueuedRequests, "Maximum number of queued requests"},
+		"OLLAMA_MODELS":            {"OLLAMA_MODELS", OllamaModels, "The path to the models directory"},
+		"OLLAMA_HOME":              {"OLLAMA_HOME", OllamaHome, "The path to the ollama home directory"},
 		"OLLAMA_MAX_VRAM":          {"OLLAMA_MAX_VRAM", MaxVRAM, "Maximum VRAM"},
-		"OLLAMA_MODELS":            {"OLLAMA_MODELS", "", "The path to the models directory"},
 		"OLLAMA_NOHISTORY":         {"OLLAMA_NOHISTORY", NoHistory, "Do not preserve readline history"},
 		"OLLAMA_NOPRUNE":           {"OLLAMA_NOPRUNE", NoPrune, "Do not prune model blobs on startup"},
 		"OLLAMA_NUM_PARALLEL":      {"OLLAMA_NUM_PARALLEL", NumParallel, "Maximum number of parallel requests (default 1)"},
@@ -163,6 +168,10 @@ func LoadConfig() {
 	}
 
 	TmpDir = clean("OLLAMA_TMPDIR")
+
+	OllamaHome = clean("OLLAMA_HOME")
+
+	OllamaModels = clean("OLLAMA_MODELS")
 
 	userLimit := clean("OLLAMA_MAX_VRAM")
 	if userLimit != "" {
@@ -281,4 +290,33 @@ func getOllamaHost() (*OllamaHost, error) {
 		Host:   host,
 		Port:   port,
 	}, nil
+}
+
+// HomeDir returns the ollama home directory. This can be user-defined through
+// the `OLLAMA_HOME` environment variable and defaults to: `$HOME/.ollama`
+func HomeDir() (string, error) {
+	if OllamaHome != "" {
+		return OllamaHome, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".ollama"), nil
+}
+
+// ModelsDir returns the ollama models directory. This can be user-defined
+// through the `OLLAMA_MODELS` environment variable and defaults to:
+//
+// 1. $OLLAMA_HOME/models, or
+// 2. $HOME/.ollama/models
+func ModelsDir() (string, error) {
+	if OllamaModels != "" {
+		return OllamaModels, nil
+	}
+	ollamaHome, err := HomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(ollamaHome, "models"), nil
 }
