@@ -253,7 +253,7 @@ func EstimateGPULayers(gpus []gpu.GpuInfo, ggml *GGML, projectors []string, opts
 	}
 
 	slog.Info(
-		"offload to gpu",
+		"memory estimation",
 		slog.Group(
 			"layers",
 			// requested number of layers to offload
