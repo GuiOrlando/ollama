@@ -252,6 +252,24 @@ func Test_Routes(t *testing.T) {
 				assert.Equal(t, expectedParams, params)
 			},
 		},
+		{
+			Name:   "openai retrieve model handler",
+			Method: http.MethodGet,
+			Path:   "/v1/models/show-model",
+			Expected: func(t *testing.T, resp *http.Response) {
+				contentType := resp.Header.Get("Content-Type")
+				assert.Equal(t, "application/json", contentType)
+				body, err := io.ReadAll(resp.Body)
+				require.NoError(t, err)
+
+				var retrieveResp api.RetrieveModelResponse
+				err = json.Unmarshal(body, &retrieveResp)
+				require.NoError(t, err)
+
+				assert.Equal(t, "show-model", retrieveResp.Id)
+				assert.Equal(t, "ollama", retrieveResp.OwnedBy)
+			},
+		},
 	}
 
 	t.Setenv("OLLAMA_MODELS", t.TempDir())

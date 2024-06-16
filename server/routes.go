@@ -660,6 +660,28 @@ func (s *Server) ShowModelHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+func (s *Server) RetrieveModelHandler(c *gin.Context) {
+	n := model.ParseName(c.Param("model"))
+	if !n.IsValid() {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("name %q is invalid", c.Param("model"))})
+		return
+	}
+
+	m, err := ParseNamedManifest(n)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp := api.RetrieveModelResponse{
+		Id:      c.Param("model"),
+		Object:  "model",
+		Created: m.fi.ModTime().Unix(),
+		OwnedBy: "ollama",
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
 func GetModelInfo(req api.ShowRequest) (*api.ShowResponse, error) {
 	m, err := GetModel(req.Model)
 	if err != nil {
@@ -1000,8 +1022,9 @@ func (s *Server) GenerateRoutes() http.Handler {
 	r.GET("/api/ps", s.ProcessHandler)
 
 	// Compatibility endpoints
-	r.POST("/v1/chat/completions", openai.Middleware(), s.ChatHandler)
+	r.POST("/v1/chat/completions", openai.ChatMiddleware(), s.ChatHandler)
 	r.GET("/v1/models", openai.ListMiddleware(), s.ListModelsHandler)
+	r.GET("/v1/models/:model", openai.RetrieveMiddleware(), s.ShowModelHandler)
 
 	for _, method := range []string{http.MethodGet, http.MethodHead} {
 		r.Handle(method, "/", func(c *gin.Context) {
