@@ -129,6 +129,7 @@ func init() {
 	NumParallel = 1
 	MaxRunners = 1
 	MaxQueuedRequests = 512
+	FlashAttention = true
 
 	LoadConfig()
 }
