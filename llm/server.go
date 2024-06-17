@@ -77,7 +77,7 @@ func LoadModel(model string) (*GGML, error) {
 
 // NewLlamaServer will run a server for the given GPUs
 // The gpu list must be a single family.
-func NewLlamaServer(gpus gpu.GpuInfoList, model string, ggml *GGML, adapters, projectors []string, opts api.Options) (LlamaServer, error) {
+func NewLlamaServer(gpus gpu.GpuInfoList, model string, ggml *GGML, adapters, projectors []string, opts api.Options, numParallel int) (LlamaServer, error) {
 	var err error
 	var cpuRunner string
 	var estimate MemoryEstimate
@@ -218,15 +218,6 @@ func NewLlamaServer(gpus gpu.GpuInfoList, model string, ggml *GGML, adapters, pr
 
 	if opts.UseNUMA {
 		params = append(params, "--numa")
-	}
-
-	numParallel := envconfig.NumParallel
-
-	// TODO (jmorganca): multimodal models don't support parallel yet
-	// see https://github.com/ollama/ollama/issues/4165
-	if len(projectors) > 0 {
-		numParallel = 1
-		slog.Warn("multimodal models don't support parallel requests yet")
 	}
 
 	params = append(params, "--parallel", fmt.Sprintf("%d", numParallel))
